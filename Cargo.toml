@@ -1,0 +1,11 @@
+[package]
+name = "rand_poly"
+version = "0.1.0"
+authors = ["George Kaplan <george@georgekaplan.xyz>"]
+edition = "2018"
+
+[dependencies]
+rand = "0.7.0"
+image = "0.22.1"
+indicatif = { version = "0.12.0", features = ["with_rayon"] }
+rayon = "1.2.0"
