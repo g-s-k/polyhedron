@@ -121,7 +121,7 @@ impl Vec3 {
         let abc_normal = u.cross(v);
         let onto_abc_normal = p.project(abc_normal);
 
-        if onto_abc_normal.mag() > 1. {
+        if onto_abc_normal.mag() > 0.5 {
             return false;
         }
 

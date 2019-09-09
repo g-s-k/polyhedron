@@ -1,4 +1,9 @@
-use std::{convert::From, f64::consts::PI, i8::MAX, ops::Add};
+use std::{
+    convert::From,
+    f64::consts::PI,
+    i8::{MAX, MIN},
+    ops::Add,
+};
 
 use super::{vec3::Vec3, Randomness, Recipe, AMBIENT_LIGHT};
 
@@ -119,8 +124,52 @@ impl From<Recipe> for Surface {
 }
 
 impl Surface {
+    fn bbox(&self) -> (Point, Point) {
+        let (mut max, mut min) = (Point(MIN, MIN, MIN), Point(MAX, MAX, MAX));
+
+        for &Point(x, y, z) in &self.vertices {
+            if x > max.0 {
+                max.0 = x;
+            }
+
+            if x < min.0 {
+                min.0 = x;
+            }
+
+            if y > max.1 {
+                max.1 = y;
+            }
+
+            if y < min.1 {
+                min.1 = y;
+            }
+
+            if z > max.2 {
+                max.2 = z;
+            }
+
+            if z < min.2 {
+                min.2 = z;
+            }
+        }
+
+        (max, min)
+    }
+
     pub fn query<T: Into<Vec3>>(&self, pt: T) -> Option<u8> {
         let pt = pt.into();
+
+        let (max, min) = self.bbox();
+
+        if pt.0 > max.0 as f64
+            || pt.0 < min.0 as f64
+            || pt.1 > max.1 as f64
+            || pt.1 < min.1 as f64
+            || pt.2 > max.2 as f64
+            || pt.2 < min.2 as f64
+        {
+            return None;
+        }
 
         let mut all = &self.vertices[..];
         while let Some((a, mut rest0)) = all.split_first() {
