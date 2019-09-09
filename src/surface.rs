@@ -24,7 +24,7 @@ fn make_random_value(r: Randomness) -> i8 {
 }
 
 #[derive(Debug)]
-pub(crate) struct Point(pub i8, pub i8, pub i8);
+pub struct Point(pub i8, pub i8, pub i8);
 
 impl Add<Self> for Point {
     type Output = Self;
@@ -91,7 +91,7 @@ impl Point {
                     .reflect((&a.into(), &b.into(), &c.into()))
                     .norm()
                     .dot(Vec3(-1., -1., 1.).norm())
-                    * (0xf5 - AMBIENT_LIGHT) as f64)
+                    * (0xff - AMBIENT_LIGHT) as f64)
                     .floor(),
                 0.,
             ),
@@ -102,7 +102,7 @@ impl Point {
 
 #[derive(Debug)]
 pub struct Surface {
-    vertices: Vec<Point>,
+    pub vertices: Vec<Point>,
 }
 
 impl From<Recipe> for Surface {

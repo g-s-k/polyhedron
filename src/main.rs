@@ -3,8 +3,9 @@ use std::{
     i8::{MAX, MIN},
 };
 
-use image::{GrayImage, ImageBuffer, Luma};
+use image::{ImageBuffer, Rgb, RgbImage};
 use indicatif::ParallelProgressIterator;
+use random_color::RandomColor;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 mod surface;
@@ -54,13 +55,30 @@ fn get_pixel_value(s: &Surface, (x, y): (f64, f64)) -> u8 {
         .unwrap_or(BACKGROUND)
 }
 
+fn scale_channel(a: u32, v: u8) -> u8 {
+    (v as f64 / 255. * a as f64) as u8
+}
+
+fn scale_color([r, g, b]: &[u32; 3], value: u8) -> [u8; 3] {
+    [
+        scale_channel(*r, value),
+        scale_channel(*g, value),
+        scale_channel(*b, value),
+    ]
+}
+
 fn main() {
+    let color = RandomColor::new();
+    let vertices = rand::random::<u8>() % 6 + 4;
+    println!("{{ color: \"{}\", vertices: {} }}", color.to_hex(), vertices);
+    println!();
+
     let r = Recipe {
-        vertices: rand::random::<u8>() % 6 + 4,
+        vertices,
         randomness: Randomness::Skewed,
     };
     let s = Surface::from(r);
-    println!("{:?}", s);
+    println!("{:?}", s.vertices);
 
     let count = RESOLUTION.pow(2);
     let pixel_values: Vec<_> = (0..count)
@@ -70,10 +88,15 @@ fn main() {
         .map(|(x, y)| (x, y, get_pixel_value(&s, map_pixel(x, y))))
         .collect();
 
-    let mut img: GrayImage = ImageBuffer::new(RESOLUTION, RESOLUTION);
+    let color = color.to_rgb_array();
+    let mut img: RgbImage = ImageBuffer::new(RESOLUTION, RESOLUTION);
     for (x, y, value) in pixel_values {
         let pixel = img.get_pixel_mut(x, y);
-        *pixel = Luma([value]);
+        if value == BACKGROUND {
+            *pixel = Rgb([BACKGROUND, BACKGROUND, BACKGROUND]);
+        } else {
+            *pixel = Rgb(scale_color(&color, value));
+        }
     }
 
     img.save("tmp.png").expect("failed to save image");
