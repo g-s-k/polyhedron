@@ -56,7 +56,7 @@ fn get_pixel_value(s: &Surface, (x, y): (f64, f64)) -> u8 {
 
 fn main() {
     let r = Recipe {
-        vertices: 8,
+        vertices: rand::random::<u8>() % 6 + 4,
         randomness: Randomness::Skewed,
     };
     let s = Surface::from(r);
