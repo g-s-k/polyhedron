@@ -21,21 +21,23 @@ const RESOLUTION: u32 = 512;
 enum Randomness {
     Regular = 0,
     Skewed = 1,
-    // Messy = 2,
+    Messy = 2,
     // Random = 4,
 }
 
 #[derive(Debug)]
 struct Recipe {
     vertices: u8,
-    randomness: Randomness,
+    scatter: Randomness,
+    shape: Randomness,
 }
 
 impl Default for Recipe {
     fn default() -> Self {
         Self {
             vertices: 4,
-            randomness: Randomness::Regular,
+            scatter: Randomness::Regular,
+            shape: Randomness::Regular,
         }
     }
 }
@@ -73,11 +75,11 @@ fn main() {
     println!("{{ color: \"{}\", vertices: {} }}", color.to_hex(), vertices);
     println!();
 
-    let r = Recipe {
+    let s = Surface::from(Recipe {
         vertices,
-        randomness: Randomness::Skewed,
-    };
-    let s = Surface::from(r);
+        scatter: Randomness::Skewed,
+        shape: Randomness::Messy,
+    });
     println!("{:?}", s.vertices);
 
     let count = RESOLUTION.pow(2);

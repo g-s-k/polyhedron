@@ -1,11 +1,6 @@
-use std::{
-    convert::From,
-    f64::consts::PI,
-    i8::MAX,
-    ops::Add,
-};
+use std::{convert::From, f64::consts::PI, i8::MAX, ops::Add};
 
-use super::{vec3::Vec3, AMBIENT_LIGHT, Randomness, Recipe};
+use super::{vec3::Vec3, Randomness, Recipe, AMBIENT_LIGHT};
 
 const RADIUS: f64 = 96.0;
 
@@ -21,6 +16,13 @@ fn make_random_value(r: Randomness) -> i8 {
     (rand::random::<i8>() % (MAX / 4))
         .checked_mul(r as i8)
         .unwrap_or(MAX)
+}
+
+fn randomize_radius(s: Randomness) -> f64 {
+    RADIUS
+        + (rand::random::<i8>() % (MAX / 8))
+            .checked_mul(s as i8)
+            .unwrap_or(MAX) as f64
 }
 
 #[derive(Debug)]
@@ -48,7 +50,7 @@ impl Point {
     ///     (x, y) = ( (i + 6) / (n + 11), i / <golden ratio> )
     ///     (theta, phi) = ( acos(2x - 1) - <pi> / 2, 2<pi>y )
 
-    fn from_index(i: u8, n: u8) -> Self {
+    fn from_index(i: u8, n: u8, shape: Randomness) -> Self {
         let (x, y);
         if i == 0 {
             x = 0.;
@@ -67,7 +69,8 @@ impl Point {
         let phi = 2. * PI * y;
         let (ps, pc) = phi.sin_cos();
 
-        let (x, y, z) = (RADIUS * tc * pc, RADIUS * tc * ps, RADIUS * ts);
+        let rho = randomize_radius(shape);
+        let (x, y, z) = (rho * tc * pc, rho * tc * ps, rho * ts);
 
         Self(x as i8, y as i8, z as i8)
     }
@@ -109,7 +112,7 @@ impl From<Recipe> for Surface {
     fn from(r: Recipe) -> Self {
         Self {
             vertices: (0..r.vertices)
-                .map(|i| Point::from_index(i, r.vertices) + Point::random(r.randomness))
+                .map(|i| Point::from_index(i, r.vertices, r.shape) + Point::random(r.scatter))
                 .collect(),
         }
     }
