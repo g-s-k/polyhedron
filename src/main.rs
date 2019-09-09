@@ -14,7 +14,7 @@ use surface::Surface;
 
 const BACKGROUND: u8 = 0xf;
 const AMBIENT_LIGHT: u8 = 0x2f;
-const RESOLUTION: u32 = 256;
+const RESOLUTION: u32 = 512;
 
 #[derive(Clone, Copy, Debug)]
 enum Randomness {
@@ -60,7 +60,7 @@ fn main() {
         randomness: Randomness::Skewed,
     };
     let s = Surface::from(r);
-    println!("surface looks like {:?}", s);
+    println!("{:?}", s);
 
     let count = RESOLUTION.pow(2);
     let pixel_values: Vec<_> = (0..count)
