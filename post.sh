@@ -2,7 +2,7 @@
 
 set -o pipefail
 
-TWEET=$(cargo run)
+TWEET=$(cargo run --release)
 
 echo "tweet text will be $TWEET"
 
