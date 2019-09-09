@@ -1,6 +1,7 @@
 use std::{
     convert::From,
     i8::{MAX, MIN},
+    ops::{Add, Mul},
 };
 
 use image::{ImageBuffer, Rgb, RgbImage};
@@ -14,8 +15,7 @@ mod vec3;
 use surface::Surface;
 
 const BACKGROUND: u8 = 0xf;
-const AMBIENT_LIGHT: u8 = 0x2f;
-const RESOLUTION: u32 = 512;
+const AMBIENT_LIGHT: u8 = 0x1f;
 
 #[derive(Clone, Copy, Debug)]
 enum Randomness {
@@ -42,37 +42,118 @@ impl Default for Recipe {
     }
 }
 
-fn map_value(v: u32) -> f64 {
-    ((v as f64) / (RESOLUTION as f64) * (MAX as f64 - MIN as f64)) + (MIN as f64)
+#[derive(Clone, Copy, Debug)]
+struct RGB {
+    r: u8,
+    b: u8,
+    g: u8,
 }
 
-fn map_pixel(x: u32, y: u32) -> (f64, f64) {
-    (map_value(x), -map_value(y))
+impl Default for RGB {
+    fn default() -> Self {
+        Self {
+            r: BACKGROUND,
+            g: BACKGROUND,
+            b: BACKGROUND,
+        }
+    }
 }
 
-fn get_pixel_value(s: &Surface, (x, y): (f64, f64)) -> u8 {
-    (MIN..MAX)
-        .rev()
-        .find_map(|z| s.query((x, y, z)))
-        .unwrap_or(BACKGROUND)
+impl From<&RandomColor> for RGB {
+    fn from(color: &RandomColor) -> Self {
+        let [r, g, b] = color.to_rgb_array();
+
+        Self {
+            r: r as u8,
+            b: b as u8,
+            g: g as u8,
+        }
+    }
 }
 
-fn scale_channel(a: u32, v: u8) -> u8 {
-    (v as f64 / 255. * a as f64) as u8
+impl From<RGB> for Rgb<u8> {
+    fn from(RGB { r, g, b }: RGB) -> Self {
+        Self([r, g, b])
+    }
 }
 
-fn scale_color([r, g, b]: &[u32; 3], value: u8) -> [u8; 3] {
-    [
-        scale_channel(*r, value),
-        scale_channel(*g, value),
-        scale_channel(*b, value),
-    ]
+impl Add<Self> for RGB {
+    type Output = Self;
+
+    fn add(self, Self { r, g, b }: Self) -> Self::Output {
+        Self {
+            r: self.r.checked_add(r).unwrap_or(255),
+            g: self.g.checked_add(g).unwrap_or(255),
+            b: self.b.checked_add(b).unwrap_or(255),
+        }
+    }
+}
+
+impl Mul<u8> for RGB {
+    type Output = Self;
+
+    fn mul(self, rhs: u8) -> Self::Output {
+        let Self { r, g, b } = self;
+        Self {
+            r: (r as u16 * rhs as u16 / 255 as u16) as u8,
+            g: (g as u16 * rhs as u16 / 255 as u16) as u8,
+            b: (b as u16 * rhs as u16 / 255 as u16) as u8,
+        }
+    }
+}
+
+impl RGB {
+    fn to_hex(&self) -> String {
+        format!("#{:x}{:x}{:x}", self.r, self.g, self.b)
+    }
+}
+
+struct Renderer {
+    fg: RGB,
+    bg: RGB,
+    width: u32,
+    height: u32,
+}
+
+impl Renderer {
+    fn new() -> Self {
+        let color_generator = RandomColor::new();
+        Self {
+            fg: RGB::from(&color_generator),
+            bg: RGB::from(&color_generator),
+            width: 675,
+            height: 675,
+        }
+    }
+
+    fn get_coord(&self, value: u32, horizontal: bool) -> f64 {
+        let n = if horizontal { self.width } else { self.height };
+
+        ((value as f64) / (n as f64) * (MAX as f64 - MIN as f64)) + (MIN as f64)
+    }
+
+    fn render(&self, pixels: &[Option<u8>]) -> RgbImage {
+        let mut img: RgbImage = ImageBuffer::from_pixel(self.width, self.height, RGB::default().into());
+
+        for (value, pixel) in pixels.iter().zip(img.pixels_mut()) {
+            if let Some(v) = value {
+                *pixel = Rgb::from(self.fg * *v + self.bg * AMBIENT_LIGHT);
+            }
+        }
+
+        img
+    }
 }
 
 fn main() {
-    let color = RandomColor::new();
-    let vertices = rand::random::<u8>() % 6 + 4;
-    println!("{{ color: \"{}\", vertices: {} }}", color.to_hex(), vertices);
+    let renderer = Renderer::new();
+    let vertices = rand::random::<u8>() % 6 + 5;
+    println!(
+        "{{ spot: \"{}\", ambient: \"{}\", vertices: {} }}",
+        renderer.fg.to_hex(),
+        renderer.bg.to_hex(),
+        vertices
+    );
     println!();
 
     let s = Surface::from(Recipe {
@@ -82,24 +163,21 @@ fn main() {
     });
     println!("{:?}", s.vertices);
 
-    let count = RESOLUTION.pow(2);
+    let count = renderer.width * renderer.height;
     let pixel_values: Vec<_> = (0..count)
         .into_par_iter()
         .progress_count(count as u64)
-        .map(|i| (i % RESOLUTION, i / RESOLUTION))
-        .map(|(x, y)| (x, y, get_pixel_value(&s, map_pixel(x, y))))
+        .map(|i| {
+            let (x, y) = (
+                renderer.get_coord(i % renderer.width, true),
+                -renderer.get_coord(i / renderer.width, false),
+            );
+            (MIN..MAX).rev().find_map(|z| s.query((x, y, z)))
+        })
         .collect();
 
-    let color = color.to_rgb_array();
-    let mut img: RgbImage = ImageBuffer::new(RESOLUTION, RESOLUTION);
-    for (x, y, value) in pixel_values {
-        let pixel = img.get_pixel_mut(x, y);
-        if value == BACKGROUND {
-            *pixel = Rgb([BACKGROUND, BACKGROUND, BACKGROUND]);
-        } else {
-            *pixel = Rgb(scale_color(&color, value));
-        }
-    }
-
-    img.save("tmp.png").expect("failed to save image");
+    renderer
+        .render(&pixel_values)
+        .save("tmp.png")
+        .expect("failed to save image");
 }

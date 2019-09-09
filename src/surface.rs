@@ -181,11 +181,7 @@ impl Surface {
                     rest1 = rest2;
 
                     if Point::in_face((a, b, c), pt) {
-                        return Some(
-                            Point::direct_light((a, b, c))
-                                .checked_add(AMBIENT_LIGHT)
-                                .unwrap_or(0xff),
-                        );
+                        return Some(Point::direct_light((a, b, c)));
                     }
                 }
             }
