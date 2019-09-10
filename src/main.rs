@@ -15,7 +15,7 @@ mod vec3;
 use surface::Surface;
 
 const BACKGROUND: u8 = 0xf;
-const AMBIENT_LIGHT: u8 = 0x1f;
+const AMBIENT_LIGHT: u8 = 0x2f;
 
 #[derive(Clone, Copy, Debug)]
 enum Randomness {
