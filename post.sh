@@ -1,8 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 
 set -o pipefail
 
-TWEET=$(cargo run --release)
+TWEET=$(/bin/rand_poly)
 
 echo "tweet text will be $TWEET"
 
