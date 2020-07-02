@@ -15,14 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Install clippy
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          profile: minimal
-          components: clippy
-      - name: Lint
-        run: cargo +nightly clippy -- -D warnings
       - name: Run tests
         run: cargo +nightly test -v
       - name: Build binary
