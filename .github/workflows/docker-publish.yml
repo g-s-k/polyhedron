@@ -15,10 +15,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: nightly
+            default: true
       - name: Run tests
-        run: cargo +nightly test -v
+        run: cargo test -v
       - name: Build binary
-        run: cargo +nightly build -v
+        run: cargo build -v
   push:
     needs: test
     runs-on: ubuntu-latest
